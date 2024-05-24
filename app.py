@@ -1,5 +1,9 @@
 import streamlit as st
 import pandas as pd
+import base64
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part, FinishReason
+import vertexai.preview.generative_models as generative_models
 
 # Set a tab title
 st.set_page_config(page_title="WISE")
@@ -21,6 +25,7 @@ We're here to help you discover insights from your data. Feel free to ask questi
 
 # Text input for context with placeholder
 context = st.text_input("Can you please describe your role in a sentence? (e.g., Patient, Researcher)", key="context")
+
 
 # Drag and drop box with accepted file types
 uploaded_file = st.file_uploader("Upload your health dataset:", type=['csv', 'xlsx'], key="uploaded_file")
@@ -52,34 +57,35 @@ else:
 # Text input for problem with placeholder
 problem = st.text_input("What question would you want to answer with this data?", key="problem")
 
-# Function to generate prompt feedback (replace with actual API call logic)
-def get_better_prompt(original_prompt):
-    # Placeholder logic for API call
-    better_prompt = "This is a suggested improvement based on your prompt."
-    return better_prompt
+def generate():
+  vertexai.init(project="nhs-ai-health24lon-6306", location="us-central1")
+  model = GenerativeModel(
+    "gemini-1.5-flash-preview-0514",
+  )
+  responses = model.generate_content(
+      [document1, text1],
+      generation_config=generation_config,
+      safety_settings=safety_settings,
+      stream=True,
+  )
 
-# Generate prompt feedback based on user input (assuming API call)
-if problem:
-    better_prompt = get_better_prompt(problem)
-    prompt_assessment = f"Your prompt could be improved. How about {better_prompt}?"
-    st.markdown(f"<p style='color:orange'>{prompt_assessment}</p>", unsafe_allow_html=True)
+  for response in responses:
+    print(response.text, end="")
 
-# Submit button with conditional enabling
-submit = st.button('Generate data analysis', disabled=not (uploaded_file and problem))
+document1 = uploaded_file
+text1 = problem 
 
-if submit:
-    st.subheader("Summary:")
-    with st.spinner(text="This may take a moment..."):
-        # Placeholder for API analysis logic
-        text2 = "API output (replace with analysis results)"
-    st.write(text2)
+generation_config = {
+    "max_output_tokens": 8192,
+    "temperature": 1,
+    "top_p": 0.95,
+}
 
-# API response on data assessment
-data_assessment = "Your data is terrible, it is not reliable"
-st.markdown(f"<p style='color:orange'>Data assessment: {data_assessment}</p>", unsafe_allow_html=True)
+safety_settings = {
+    generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+}
 
-# API response on data assessment
-data_score = "xx%"
-
-data_assessment = "Your data is terrible, it is not reliable"
-st.markdown(f"<p style='color:orange'>Data assessment: {data_assessment}</p>", unsafe_allow_html=True)
+generate()
